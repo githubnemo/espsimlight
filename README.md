@@ -11,7 +11,7 @@ visualizer that is called **ESP simlight**.
 
 Example video:
 
-https://github.com/githubnemo/espsimlight/assets/264196/c9d6ee22-0656-409b-9e91-4b8c56522422
+https://github.com/githubnemo/espsimlight/assets/264196/cd9020cd-ccbf-4e33-b14c-fcecb9af87c7
 
 ## Installation
 
