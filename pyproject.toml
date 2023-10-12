@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "espsimlight"
+version = "0.1.0"
+description = "A tool to simulate addressable light effects for ESPHome (and possibly other frameworks)"
+authors = ["nemo <git@ningu.net>"]
+license = "GPL-3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+pygame = "^2.5.2"
+watchdog = "^3.0.0"
+numpy = "^1.26.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+flake8 = "^6.1.0"
+
+[tool.poetry.scripts]
+espsimlight = 'espsimlight:espsimlight'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
