@@ -21,7 +21,7 @@ https://github.com/githubnemo/espsimlight/assets/264196/c9d6ee22-0656-409b-9e91-
 
 There are examples you can test:
 
-poetry run espsimlight examples/desklamp.shape examples/running_light.py
+    poetry run espsimlight examples/desklamp.shape examples/running_light.py
 
 Try editing `running_light.py` while the simulation is running.
 
