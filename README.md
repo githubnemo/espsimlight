@@ -1,5 +1,7 @@
 # ESP simlight
 
+![Can you feel the confusion of ESPHome light effects?](./assets/confusion.png)
+
 ESP simlight is a tool to, given a layout file, run arbitrary Python code
 to simulate your addressable light effect lambda!
 
@@ -9,7 +11,7 @@ visualizer that is called **ESP simlight**.
 
 Example video:
 
-https://raw.githubusercontent.com/githubnemo/espsimlight/master/assets/example.mov
+https://github.com/githubnemo/espsimlight/assets/264196/c9d6ee22-0656-409b-9e91-4b8c56522422
 
 ## Installation
 
