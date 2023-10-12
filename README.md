@@ -42,3 +42,9 @@ A strip in a square configuration
     12     5
     11     6
     10 9 8 7
+
+
+## Limitations
+
+Only parts of the ESPHome Color API is implemented.
+If you feel that there is something missing, please open a PR.

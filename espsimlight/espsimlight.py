@@ -22,6 +22,42 @@ def effect_fn(iterator, current_color, static={}):
         c.b = 255
 
 
+class ColorIterator(list):
+
+    def size(self):
+        return len(self)
+
+    def all(self):
+        return self
+
+    def range(self, a, b):
+        return ColorIterator(self[a:b])
+
+    def fade_to_black(self, amount):
+        for c in self:
+            c.from_color(c.fade_to_black(amount))
+
+    def fade_to_white(self, amount):
+        for c in self:
+            c.from_color(c.fade_to_white(amount))
+
+    def set(self, color):
+        for c in self:
+            c.from_color(color)
+
+    def set_red(self, v):
+        for c in self:
+            c.r = v
+
+    def set_green(self, v):
+        for c in self:
+            c.g = v
+
+    def set_blue(self, v):
+        for c in self:
+            c.b = v
+
+
 class Color:
     r = 0
     g = 0
@@ -51,6 +87,36 @@ class Color:
         c.g = v >> 8 & 0xFF
         c.b = v & 0xFF
         return c
+
+    def _assert_integer(self, value):
+        if not isinstance(value, int):
+            raise ValueError("Expected integer value to be compatible with ESPHome.")
+
+    def gradient(self, other_color, amount):
+        self._assert_integer(amount)
+
+        new_color = Color()
+        amount /= 255
+        new_color.r = int(amount * (other_color.r - self.r) + self.r)
+        new_color.g = int(amount * (other_color.g - self.g) + self.g)
+        new_color.b = int(amount * (other_color.b - self.b) + self.b)
+        return new_color
+
+    def fade_to_black(self, amount):
+        return self.gradient(self.BLACK, amount)
+
+    def fade_to_white(self, amount):
+        return self.gradient(self.WHITE, amount)
+
+    @classmethod
+    @property
+    def BLACK(cls):
+        return Color(0, 0, 0)
+
+    @classmethod
+    @property
+    def WHITE(cls):
+        return Color(255, 255, 255)
 
 
 def get_canvas_dimensions(canvas):
@@ -93,7 +159,7 @@ class State:
     """
 
     def __init__(self, length):
-        self.colors = [Color() for _ in range(length)]
+        self.colors = ColorIterator([Color() for _ in range(length)])
         self.current_color = Color()
 
     def set_current_color(self, new_color):
@@ -104,7 +170,7 @@ class State:
 
 def run_simulation(canvas, display_dims, state):
     try:
-        effect_fn(iter(state.colors), state.current_color)
+        effect_fn(state.colors, state.current_color)
     except Exception as e:
         print("Error while executing effect fn")
         print(e)
