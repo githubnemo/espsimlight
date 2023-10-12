@@ -3,48 +3,7 @@ import re
 import numpy as np
 
 
-length = 6 * 12
-
-canvas = """
-                                                                 |
-
-                                40
-                                39
-                                38
-                                37
-                                36
-                                35
-        52                      34                      28
-          51                  41  33                  27
-            50              42      32              26
-              49          43          31          25
-                48      44              30      24
-                  47  45                  29  24
-                    46                      23
-                    53                      22
-                    54                      21
-                    55                      20
-                    56                      19
-                    57                      18
-                    58                      11
-                  60 59                   10  12
-                61     66                9      13
-              62         67            8          14
-            63             68        7              15
-          64                 69    6                  16
-        65                     70                       17
-                                0
-                                1
-                                2
-                                3
-                                4
-                                5
-"""
-
 number_pattern = re.compile(r'\b[0-9]+\b')
-
-if len(number_pattern.findall(canvas)) != length:
-    raise ValueError(f"canvas does not contain as many leds as length ({length})")
 
 
 def effect_fn(iterator, current_color, static={}):
@@ -135,7 +94,7 @@ def run_simulation(canvas, display_dims, state):
     return render(canvas, *display_dims, state.colors)
 
 
-def gameloop(canvas, observer):
+def gameloop(canvas, strip_length, observer):
     import pygame
 
     pygame.init()
@@ -144,7 +103,7 @@ def gameloop(canvas, observer):
     scaling_factor = 8
     window = pygame.display.set_mode((display_dims[1] * scaling_factor, display_dims[0] * scaling_factor))
 
-    state = State(length)
+    state = State(strip_length)
     state.set_current_color(Color(255, 0, 255))
 
     run = True
@@ -200,6 +159,22 @@ def reload_effect_fn(path):
     return True
 
 
+def get_length_from_canvas(canvas):
+    all_numbers = number_pattern.findall(canvas)
+    all_numbers = [int(n) for n in all_numbers]
+    all_numbers = set(all_numbers)
+
+    ref_numbers = set(range(len(all_numbers)))
+
+    if all_numbers != ref_numbers:
+        raise ValueError(
+            "Your shape file does not use continuous numbers - this tool "
+            "assumes they are, please check your shape file or fix this tool. "
+            "Missing: " + str(ref_numbers.difference(all_numbers))
+        )
+    return len(all_numbers)
+
+
 if __name__ == "__main__":
     import sys
     from os.path import dirname
@@ -231,6 +206,9 @@ if __name__ == "__main__":
     with open(args.shape_file, 'r') as f:
         canvas = ''.join(f.readlines())
 
+    strip_length = get_length_from_canvas(canvas)
+    print(f'Found {strip_length} number of LEDs in shape file.')
+
     if not reload_effect_fn(args.code_file):
         sys.exit(1)
 
@@ -241,7 +219,7 @@ if __name__ == "__main__":
     observer.start()
 
     try:
-        gameloop(canvas, observer)
+        gameloop(canvas, strip_length, observer)
     finally:
         observer.stop()
         observer.join()
