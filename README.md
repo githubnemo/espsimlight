@@ -9,7 +9,7 @@ visualizer that is called **ESP simlight**.
 
 Example video:
 
-https://raw.githubusercontent.com/githubnemo/espsimlight/master/assets/example.webm
+https://raw.githubusercontent.com/githubnemo/espsimlight/master/assets/example.mov
 
 ## Installation
 
@@ -19,8 +19,24 @@ https://raw.githubusercontent.com/githubnemo/espsimlight/master/assets/example.w
 
 There are examples you can test:
 
-	espsimlight examples/desklamp.shape examples/running_light.py
+poetry run espsimlight examples/desklamp.shape examples/running_light.py
 
 Try editing `running_light.py` while the simulation is running.
 
-The shape file is just an ASCII file with all the
+The shape file is just an ASCII file with all the LEDs of your addressable
+light at a position of your choice - as long as each number has some form
+of whitespace (newline, beginning of line, space, tab, ...) in front and
+at the end of it.
+
+### Examples
+
+A linear strip
+
+    1 2 3 4 5 6
+
+A strip in a square configuration
+
+    1  2 3 4
+    12     5
+    11     6
+    10 9 8 7

@@ -1,12 +1,21 @@
 #!/usr/bin/env python
 import re
+
 import numpy as np
+import pygame
 
 
-number_pattern = re.compile(r'\b[0-9]+\b')
+number_pattern = re.compile(r"\b[0-9]+\b")
 
 
 def effect_fn(iterator, current_color, static={}):
+    """Default effect function which only sets the pixel of each LED
+    to white. Note that there is a ``static`` keyword argument which
+    can be used to simulate the C/C++ static keyword by acting as a
+    locally defined global memory.
+
+    This function definition is expected to be replaced by ``reload_effect_fn``.
+    """
     for i, c in enumerate(iterator):
         c.r = 255
         c.g = 255
@@ -24,11 +33,11 @@ class Color:
         self.b = b
 
     def __repr__(self):
-        return f'#{self.r:>02x}{self.g:>02x}{self.b:>02x}'
+        return f"#{self.r:>02x}{self.g:>02x}{self.b:>02x}"
 
     def to_rgb(self):
         r, g, b = self.r, self.g, self.b
-        return (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff)
+        return (r & 0xFF) << 16 | (g & 0xFF) << 8 | (b & 0xFF)
 
     def from_color(self, c):
         self.r = c.r
@@ -38,22 +47,22 @@ class Color:
     @classmethod
     def from_rgb(cls, v):
         c = cls()
-        c.r = v >> 16 & 0xff
-        c.g = v >>  8 & 0xff
-        c.b = v & 0xff
+        c.r = v >> 16 & 0xFF
+        c.g = v >> 8 & 0xFF
+        c.b = v & 0xFF
         return c
 
 
 def get_canvas_dimensions(canvas):
-    canvas_lines = canvas.split('\n')
+    canvas_lines = canvas.split("\n")
     height = len(canvas_lines)
     width = max(len(n) for n in canvas_lines)
     return height, width
 
 
 def render(canvas, height, width, colors):
-    canvas_lines = canvas.split('\n')
-    pixel_canvas = np.zeros((height, width), dtype='uint32')
+    canvas_lines = canvas.split("\n")
+    pixel_canvas = np.zeros((height, width), dtype="uint32")
 
     for line_idx, canvas_line in enumerate(canvas_lines):
         offset = 0
@@ -68,12 +77,21 @@ def render(canvas, height, width, colors):
             # want the digits influence the indices, therefore we go from
             # left to right and remember the number of superfluous digits
             # so that we can remove them from the start index of the next
-            #offset += max(1, len(number_match.group()) - 1)
+            # offset += max(1, len(number_match.group()) - 1)
 
     return pixel_canvas
 
 
 class State:
+    """The game state constitues of the color state of every LED in the
+    strip (``State.colors``) and the current global set color (pre-set
+    by the user) - ``State.current_color``.
+
+    Setting ``current_color`` will also set all LEDs to that color once.
+
+    All held references are preserved and should never be replaced.
+    """
+
     def __init__(self, length):
         self.colors = [Color() for _ in range(length)]
         self.current_color = Color()
@@ -88,20 +106,19 @@ def run_simulation(canvas, display_dims, state):
     try:
         effect_fn(iter(state.colors), state.current_color)
     except Exception as e:
-        print('Error while executing effect fn')
+        print("Error while executing effect fn")
         print(e)
 
     return render(canvas, *display_dims, state.colors)
 
 
-def gameloop(canvas, strip_length, observer):
-    import pygame
-
+def gameloop(config, canvas, strip_length, observer):
     pygame.init()
 
     display_dims = get_canvas_dimensions(canvas)
-    scaling_factor = 8
-    window = pygame.display.set_mode((display_dims[1] * scaling_factor, display_dims[0] * scaling_factor))
+    window = pygame.display.set_mode(
+        (config.width, config.height),
+    )
 
     state = State(strip_length)
     state.set_current_color(Color(255, 0, 255))
@@ -113,7 +130,7 @@ def gameloop(canvas, strip_length, observer):
             if event.type == pygame.QUIT:
                 run = False
 
-        print(f'tick {i}', end='\r')
+        print(f"tick {i}", end="\r")
         i = (i % 1024) + 1
 
         window.fill(0)
@@ -126,8 +143,10 @@ def gameloop(canvas, strip_length, observer):
                 color = Color.from_rgb(image_data[y, x])
                 simulation_surface.set_at((x, y), (color.r, color.g, color.b))
 
-        simulation_surface = pygame.transform.scale_by(simulation_surface, scaling_factor)
-        window.blit(simulation_surface, (0,0))
+        simulation_surface = pygame.transform.scale(
+            simulation_surface, (config.width, config.height)
+        )
+        window.blit(simulation_surface, (0, 0))
 
         pygame.display.flip()
         pygame.time.wait(15)
@@ -135,17 +154,23 @@ def gameloop(canvas, strip_length, observer):
     pygame.quit()
 
 
-
 def load_effect_fn_from_file(path):
-    print('Reloading effect function...')
-    with open(path, 'r') as f:
+    """Attempts to execute Python code in the file pointed at by ``path``
+    to extract the function definition called ``effect_fn``.
+
+    Any error will be caught and printed to stdout.
+
+    On success the function object is returned, otherwise ``None``.
+    """
+    print("Reloading effect function...")
+    with open(path, "r") as f:
         try:
             _globals = None
             _locals = {}
             effect_fn = exec(f.read(), _globals, _locals)
-            return _locals['effect_fn']
+            return _locals["effect_fn"]
         except Exception as e:
-            print(f'Failure parsing effect: {e}')
+            print(f"Failure parsing effect: {e}")
     return None
 
 
@@ -160,6 +185,14 @@ def reload_effect_fn(path):
 
 
 def get_length_from_canvas(canvas):
+    """Attempt to retrieve the length of the addressable LED strip
+    from the canvas definition.
+
+    This functioin will fail with an ``ValueError`` when the sequence
+    is not strictly ascending, i.e. there cannot be gaps between the
+    LED indices. This is done to ensure that the user did not accidentally
+    forget LEDs and we don't assume a wrong strip length.
+    """
     all_numbers = number_pattern.findall(canvas)
     all_numbers = [int(n) for n in all_numbers]
     all_numbers = set(all_numbers)
@@ -175,7 +208,7 @@ def get_length_from_canvas(canvas):
     return len(all_numbers)
 
 
-if __name__ == "__main__":
+def main():
     import sys
     from os.path import dirname
     import argparse
@@ -187,6 +220,7 @@ if __name__ == "__main__":
     class CodeFileEventHandler(watchdog.events.FileSystemEventHandler):
         def __init__(self, code_file_path):
             self.code_file_path = code_file_path
+
         def on_modified(self, event):
             event_path = pathlib.Path(event.src_path)
             file_path = pathlib.Path(self.code_file_path)
@@ -194,20 +228,32 @@ if __name__ == "__main__":
                 reload_effect_fn(event.src_path)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('shape_file', type=str,
-            help='Shape file. Basically a text file that contains a '
-                 'whitespace separated number for each LED.')
-    parser.add_argument('code_file', type=str,
-            help='Code file. The code definition for the effect function '
-                 'is stored here.')
+    parser.add_argument(
+        "shape_file",
+        type=str,
+        help="Shape file. Basically a text file that contains a "
+        "whitespace separated number for each LED.",
+    )
+    parser.add_argument(
+        "code_file",
+        type=str,
+        help="Code file. The code definition for the effect function "
+        "is stored here.",
+    )
+    parser.add_argument(
+        "--width", type=int, default=1024, help="Render window width in pixels"
+    )
+    parser.add_argument(
+        "--height", type=int, default=1024, help="Render window height in pixels"
+    )
 
     args = parser.parse_args()
 
-    with open(args.shape_file, 'r') as f:
-        canvas = ''.join(f.readlines())
+    with open(args.shape_file, "r") as f:
+        canvas = "".join(f.readlines())
 
     strip_length = get_length_from_canvas(canvas)
-    print(f'Found {strip_length} number of LEDs in shape file.')
+    print(f"Found {strip_length} number of LEDs in shape file.")
 
     if not reload_effect_fn(args.code_file):
         sys.exit(1)
@@ -215,13 +261,16 @@ if __name__ == "__main__":
     fs_event_handler = CodeFileEventHandler(args.code_file)
 
     observer = watchdog.observers.Observer()
-    observer.schedule(fs_event_handler, dirname(args.code_file) or '.', recursive=False)
+    observer.schedule(fs_event_handler, dirname(args.code_file) or ".", recursive=False)
     observer.start()
+    print(f"FS watcher to look for changes in {args.code_file} started.")
 
     try:
-        gameloop(canvas, strip_length, observer)
+        gameloop(args, canvas, strip_length, observer)
     finally:
         observer.stop()
         observer.join()
 
 
+if __name__ == "__main__":
+    main()

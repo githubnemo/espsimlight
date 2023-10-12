@@ -17,7 +17,7 @@ black = "^23.9.1"
 flake8 = "^6.1.0"
 
 [tool.poetry.scripts]
-espsimlight = 'espsimlight:espsimlight'
+espsimlight = 'espsimlight:espsimlight.main'
 
 [build-system]
 requires = ["poetry-core"]
